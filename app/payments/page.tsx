@@ -1,0 +1,28 @@
+'use client';
+import { Badge, Panel } from '@/components/ui';
+import { useDemoUser } from '@/lib/auth';
+import { useWorkflowItems, type WorkflowItem } from '@/lib/workflow-store';
+import { money } from '@/lib/utils';
+import { AlertTriangle, CheckCircle2, PauseCircle, WalletCards } from 'lucide-react';
+
+export default function PaymentsPage() {
+  const user = useDemoUser();
+  const { items, update } = useWorkflowItems();
+  const rows = items.filter((item) => item.status === 'Approved' || item.status === 'Queued for Payment' || item.status === 'Paid' || item.status === 'Payment Failed');
+  const payable = rows.filter((item) => item.paymentStatus === 'Ready').length;
+  const paid = rows.filter((item) => item.paymentStatus === 'Paid').length;
+
+  function execute(item: WorkflowItem, result: 'success' | 'failed' | 'hold') {
+    if (result === 'success') {
+      update(item.id, { status: 'Paid', paymentStatus: 'Paid', erpSyncStatus: 'Synced' }, user.role);
+    }
+    if (result === 'failed') {
+      update(item.id, { status: 'Payment Failed', paymentStatus: 'Failed', erpSyncStatus: 'Pending' }, user.role);
+    }
+    if (result === 'hold') {
+      update(item.id, { status: 'On Hold', paymentStatus: 'Hold', erpSyncStatus: 'Pending' }, user.role);
+    }
+  }
+
+  return <div className="space-y-5"><Panel title="Phase 5 and 6: Payment execution and post-payment processing" subtitle="Admin executes RTGS, NEFT, cheque, or UPI, then confirms accounting book update, ERP sync, audit trail, and notification."><div className="grid gap-3 md:grid-cols-4"><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4"><WalletCards className="text-cyan-300" size={20} /><div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">Ready to pay</div><div className="mt-2 text-2xl font-semibold text-white">{payable}</div></div><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4"><CheckCircle2 className="text-emerald-300" size={20} /><div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">Paid and synced</div><div className="mt-2 text-2xl font-semibold text-white">{paid}</div></div><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4"><AlertTriangle className="text-amber-300" size={20} /><div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">Failures</div><div className="mt-2 text-2xl font-semibold text-white">{rows.filter((item) => item.paymentStatus === 'Failed').length}</div></div><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4"><PauseCircle className="text-rose-300" size={20} /><div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">Held</div><div className="mt-2 text-2xl font-semibold text-white">{items.filter((item) => item.paymentStatus === 'Hold').length}</div></div></div></Panel><Panel title="Admin payment queue" subtitle="Only Admin can run payment execution in this demo."><div className="overflow-auto"><table className="min-w-[1120px] w-full border-separate border-spacing-0 text-left text-sm"><thead><tr className="text-xs uppercase tracking-[0.14em] text-slate-500"><th className="border-b border-white/10 px-3 py-3">Invoice</th><th className="border-b border-white/10 px-3 py-3">Vendor</th><th className="border-b border-white/10 px-3 py-3">Amount</th><th className="border-b border-white/10 px-3 py-3">Mode</th><th className="border-b border-white/10 px-3 py-3">Approval</th><th className="border-b border-white/10 px-3 py-3">Payment</th><th className="border-b border-white/10 px-3 py-3">ERP Sync</th><th className="border-b border-white/10 px-3 py-3">Post-payment outcome</th><th className="border-b border-white/10 px-3 py-3">Action</th></tr></thead><tbody>{rows.map((item) => <tr key={item.id} className="hover:bg-white/[0.03]"><td className="border-b border-white/5 px-3 py-4 font-medium text-white">{item.invoiceNumber}</td><td className="border-b border-white/5 px-3 py-4 text-slate-300">{item.vendorName}</td><td className="border-b border-white/5 px-3 py-4 text-slate-200">{money(item.invoiceAmount)}</td><td className="border-b border-white/5 px-3 py-4"><Badge tone="violet">{item.paymentMode}</Badge></td><td className="border-b border-white/5 px-3 py-4"><Badge tone="emerald">{item.status}</Badge></td><td className="border-b border-white/5 px-3 py-4"><Badge tone={item.paymentStatus === 'Paid' || item.paymentStatus === 'Ready' ? 'emerald' : item.paymentStatus === 'Failed' ? 'rose' : item.paymentStatus === 'Hold' ? 'amber' : 'slate'}>{item.paymentStatus}</Badge></td><td className="border-b border-white/5 px-3 py-4"><Badge tone={item.erpSyncStatus === 'Synced' ? 'emerald' : 'amber'}>{item.erpSyncStatus}</Badge></td><td className="border-b border-white/5 px-3 py-4 text-slate-400">{item.paymentStatus === 'Paid' ? 'Books updated, ERP synced, audit generated, vendor notified' : item.paymentStatus === 'Failed' ? 'Retry or investigate required' : item.paymentStatus === 'Hold' ? 'Rejected or held for investigation' : 'Waiting for execution'}</td><td className="border-b border-white/5 px-3 py-4"><div className="flex gap-2"><button onClick={() => execute(item, 'success')} className="rounded-xl bg-emerald-300 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-200">Success</button><button onClick={() => execute(item, 'failed')} className="rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-400/15">Fail</button><button onClick={() => execute(item, 'hold')} className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-400/15">Hold</button></div></td></tr>)}</tbody></table></div></Panel></div>;
+}
