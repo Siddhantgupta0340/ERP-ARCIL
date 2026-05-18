@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Badge } from './ui';
+import { useToast } from './toast';
 import { BarChart3, Building2, FileText, GitBranch, ListChecks, Settings, WalletCards, ShieldCheck, LogOut, KeyRound, UserRoundCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { canAccess, demoUsers, findDemoUser, storageKey, type DemoUser } from '@/lib/auth';
@@ -19,6 +20,7 @@ const nav = [
 ];
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const toast = useToast();
   const [activeUser, setActiveUser] = useState<DemoUser | null>(null);
   const [email, setEmail] = useState(demoUsers[0].email);
   const [password, setPassword] = useState(demoUsers[0].password);
@@ -47,16 +49,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     const user = findDemoUser(nextEmail, nextPassword);
     if (!user) {
       setError('Use one of the demo credentials shown below.');
+      toast({ type: 'error', title: 'Login failed', description: 'Use one of the demo credentials shown below.' });
       return;
     }
     window.localStorage.setItem(storageKey, user.email);
     setActiveUser(user);
     setError('');
+    toast({ type: 'success', title: 'Login successful', description: `Signed in as ${user.role}.` });
   }
 
   function logout() {
     window.localStorage.removeItem(storageKey);
     setActiveUser(null);
+    toast({ type: 'info', title: 'Logged out', description: 'Choose another role to continue the walkthrough.' });
   }
 
   if (!activeUser) {
@@ -65,5 +70,5 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const allowedChildren = canAccess(activeUser, pathname) ? children : <section className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-glow"><Badge tone={activeUser.accent}>{activeUser.role}</Badge><h1 className="mt-4 text-2xl font-semibold text-white">This page is not needed for this role.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">Only Admin sees all pages. Approvers see their approval workbench. Vendor sees PO, GRN, and invoice submission screens.</p></section>;
 
-  return <div className="min-h-screen text-slate-100"><div className="mx-auto grid min-h-screen max-w-[1600px] grid-cols-1 lg:grid-cols-[280px_1fr]"><aside className="border-r border-white/10 bg-slate-950/50 p-4 backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen"><div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-glow"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 text-slate-950 font-black">AP</div><div><div className="text-lg font-semibold">ProcureFlow X</div><div className="text-xs text-slate-400">Role-based P2P Demo</div></div></div><div className="mt-4 flex flex-wrap gap-2"><Badge tone={activeUser.accent}>{activeUser.level}</Badge><Badge tone="emerald">Shared Data</Badge></div></div><nav className="mt-4 space-y-1">{nav.filter((item) => activeUser.nav.includes(item.href)).map((item) => { const active = pathname === item.href; const Icon = item.icon; return <Link key={item.href} href={item.href} className={cn('flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition', active ? `${accentClass} ring-1` : 'text-slate-300 hover:bg-white/5 hover:text-white')}><Icon size={18} />{item.label}</Link>; })}</nav><div className="mt-4 rounded-3xl border border-white/10 bg-gradient-to-br from-white/8 to-white/3 p-4"><div className="flex items-start justify-between gap-3"><div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Signed in as</div><div className="mt-2 text-lg font-semibold">{activeUser.name}</div></div><Badge tone={activeUser.accent}>{activeUser.level}</Badge></div><div className="mt-1 text-sm text-slate-300">{activeUser.role}</div><div className="mt-2 text-sm leading-6 text-slate-400">{activeUser.scope}</div><button onClick={logout} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10"><LogOut size={16} /> Switch role</button></div></aside><main className="px-4 py-4 lg:px-6">{allowedChildren}</main></div></div>;
+  return <div className="min-h-screen text-slate-100"><div className="mx-auto grid min-h-screen w-full max-w-[1600px] grid-cols-1 lg:grid-cols-[260px_1fr] xl:grid-cols-[280px_1fr]"><aside className="border-b border-white/10 bg-slate-950/65 p-3 backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:p-4"><div className="rounded-lg border border-white/10 bg-white/5 p-4 shadow-glow"><div className="flex items-center gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 to-emerald-400 text-slate-950 font-black">AP</div><div><div className="text-base font-semibold sm:text-lg">ProcureFlow X</div><div className="text-xs text-slate-400">Role-based P2P Demo</div></div></div><div className="mt-4 flex flex-wrap gap-2"><Badge tone={activeUser.accent}>{activeUser.level}</Badge><Badge tone="emerald">Shared Data</Badge></div></div><nav className="mt-3 flex gap-2 overflow-x-auto pb-1 lg:mt-4 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0">{nav.filter((item) => activeUser.nav.includes(item.href)).map((item) => { const active = pathname === item.href; const Icon = item.icon; return <Link key={item.href} href={item.href} className={cn('flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition lg:gap-3 lg:px-4 lg:py-3', active ? `${accentClass} ring-1` : 'text-slate-300 hover:bg-white/5 hover:text-white')}><Icon size={18} />{item.label}</Link>; })}</nav><div className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] p-4 lg:mt-4"><div className="flex items-start justify-between gap-3"><div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Signed in as</div><div className="mt-2 text-base font-semibold sm:text-lg">{activeUser.name}</div></div><Badge tone={activeUser.accent}>{activeUser.level}</Badge></div><div className="mt-1 text-sm text-slate-300">{activeUser.role}</div><div className="mt-2 text-sm leading-6 text-slate-400">{activeUser.scope}</div><button onClick={logout} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-200 transition hover:bg-white/10"><LogOut size={16} /> Switch role</button></div></aside><main className="w-full px-3 py-4 sm:px-4 lg:px-6">{allowedChildren}</main></div></div>;
 }

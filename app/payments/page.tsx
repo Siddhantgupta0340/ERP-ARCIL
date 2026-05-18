@@ -1,5 +1,6 @@
 'use client';
 import { Badge, Panel } from '@/components/ui';
+import { useToast } from '@/components/toast';
 import { useDemoUser } from '@/lib/auth';
 import { useWorkflowItems, type WorkflowItem } from '@/lib/workflow-store';
 import { money } from '@/lib/utils';
@@ -8,6 +9,7 @@ import { AlertTriangle, CheckCircle2, PauseCircle, WalletCards } from 'lucide-re
 export default function PaymentsPage() {
   const user = useDemoUser();
   const { items, update } = useWorkflowItems();
+  const toast = useToast();
   const rows = items.filter((item) => item.status === 'Approved' || item.status === 'Queued for Payment' || item.status === 'Paid' || item.status === 'Payment Failed');
   const payable = rows.filter((item) => item.paymentStatus === 'Ready').length;
   const paid = rows.filter((item) => item.paymentStatus === 'Paid').length;
@@ -15,12 +17,15 @@ export default function PaymentsPage() {
   function execute(item: WorkflowItem, result: 'success' | 'failed' | 'hold') {
     if (result === 'success') {
       update(item.id, { status: 'Paid', paymentStatus: 'Paid', erpSyncStatus: 'Synced' }, user.role);
+      toast({ type: 'success', title: 'Payment Completed', description: `${item.invoiceNumber} was paid and synced to ERP.` });
     }
     if (result === 'failed') {
       update(item.id, { status: 'Payment Failed', paymentStatus: 'Failed', erpSyncStatus: 'Pending' }, user.role);
+      toast({ type: 'error', title: 'Payment Failed', description: `${item.invoiceNumber} needs retry or investigation.` });
     }
     if (result === 'hold') {
       update(item.id, { status: 'On Hold', paymentStatus: 'Hold', erpSyncStatus: 'Pending' }, user.role);
+      toast({ type: 'warning', title: 'Payment Held', description: `${item.invoiceNumber} was placed on hold.` });
     }
   }
 
