@@ -26,7 +26,7 @@ export const demoUsers: DemoUser[] = [
     level: 'Admin',
     title: 'Full P2P operations owner',
     scope: 'Can see all operational data, monitor every phase, execute payments, and complete post-payment processing.',
-    nav: ['/', '/vendors', '/invoices', '/matching', '/approvals', '/payments', '/audit', '/settings'],
+    nav: ['/', '/vendors', '/purchase-orders', '/invoices', '/matching', '/approvals', '/payments', '/audit', '/settings'],
     accent: 'emerald',
   },
   {
@@ -74,7 +74,7 @@ export const demoUsers: DemoUser[] = [
     level: 'Vendor',
     title: 'Submits PO, GRN, and invoice details',
     scope: 'Can add, update, and delete PO details, delivery challan/GRN details, and invoice submissions.',
-    nav: ['/', '/vendors', '/invoices', '/matching'],
+    nav: ['/', '/vendors', '/purchase-orders', '/invoices', '/matching'],
     accent: 'rose',
   },
 ];
@@ -89,7 +89,7 @@ export function findDemoUser(email: string, password: string) {
 }
 
 export function canAccess(user: DemoUser, path: string) {
-  return user.nav.includes(path);
+  return user.nav.some((entry) => entry === path || (entry !== '/' && path.startsWith(`${entry}/`)));
 }
 
 export function useDemoUser() {
